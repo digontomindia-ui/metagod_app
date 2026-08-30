@@ -1,0 +1,895 @@
+# Temple Project — Mobile App API Reference
+
+> **Backend Base URL:** `https://api.metagod.in/api`  
+> **Postman Collection:** `Temple_Project_API.postman_collection.json` *(provided separately)*
+
+---
+
+## Table of Contents
+
+1. [Quick Start](#1-quick-start)
+2. [Authentication](#2-authentication)
+3. [Response Format](#3-response-format)
+4. [Error Handling](#4-error-handling)
+5. [Temples](#5-temples)
+6. [Products & Temple Shop](#6-products--temple-shop)
+7. [Donations](#7-donations)
+8. [Orders (Marketplace)](#8-orders-marketplace)
+9. [Pujas & Prasad](#9-pujas--prasad)
+10. [Spiritual Activities](#10-spiritual-activities)
+11. [Wallet](#11-wallet)
+12. [Subscriptions](#12-subscriptions)
+13. [VR Experiences](#13-vr-experiences)
+14. [User Profile](#14-user-profile)
+15. [Upload Image](#15-upload-image)
+16. [AI Chatbot](#16-ai-chatbot)
+17. [Razorpay Payment Flow](#17-razorpay-payment-flow)
+18. [Live Streaming (HLS)](#18-live-streaming-hls)
+19. [Data Models Reference](#19-data-models-reference)
+20. [Dev Tips & Gotchas](#20-dev-tips--gotchas)
+
+---
+
+## 1. Quick Start
+
+### Step 1 — Register
+
+```http
+POST https://api.metagod.in/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Arjun Sharma",
+  "email": "arjun@example.com",
+  "password": "Password@123",
+  "phone": "9876543210"
+}
+```
+
+### Step 2 — Login and store the token
+
+```http
+POST https://api.metagod.in/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "arjun@example.com",
+  "password": "Password@123"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGci...",
+    "user": {
+      "_id": "6a0dd97a...",
+      "name": "Arjun Sharma",
+      "email": "arjun@example.com",
+      "role": "USER"
+    }
+  }
+}
+```
+
+Store `accessToken` and `refreshToken` securely.
+
+### Step 3 — Add token to every request
+
+```
+Authorization: Bearer <accessToken>
+```
+
+---
+
+## 2. Authentication
+
+| Endpoint | Method | Auth Required | Description |
+|---|---|---|---|
+| `/auth/register` | POST | ❌ | Create new account |
+| `/auth/login` | POST | ❌ | Get access + refresh tokens |
+| `/auth/me` | GET | ✅ | Get current logged-in user |
+| `/auth/refresh` | POST | ❌ | Get new access token |
+| `/auth/send-otp` | POST | ❌ | Send OTP to email |
+| `/auth/verify-otp` | POST | ❌ | Verify OTP code |
+| `/auth/change-password` | POST | ✅ | Change password |
+| `/auth/logout` | POST | ✅ | Logout current session |
+
+### Register — Request Body
+
+```json
+{
+  "name": "string (required)",
+  "email": "string (required, unique)",
+  "password": "string (required, min 6 chars)",
+  "phone": "string (optional)"
+}
+```
+
+> ⚠️ Do **not** send a `role` field. All mobile app users are automatically assigned the `USER` role.
+
+### Token Refresh
+
+When a request returns `401 Unauthorized`, your `accessToken` has expired. Silently refresh it:
+
+```http
+POST https://api.metagod.in/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "<stored_refresh_token>"
+}
+```
+
+Returns a new `accessToken`. Update your stored token and retry the original request.
+
+### OTP Flow (Forgot Password / Verify Email)
+
+```http
+POST /api/auth/send-otp
+{ "email": "arjun@example.com" }
+
+POST /api/auth/verify-otp
+{ "email": "arjun@example.com", "otp": "123456" }
+```
+
+---
+
+## 3. Response Format
+
+All API responses follow this structure:
+
+### ✅ Success
+
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+For list responses:
+```json
+{
+  "success": true,
+  "data": [ ... ]
+}
+```
+
+### ❌ Error
+
+```json
+{
+  "success": false,
+  "message": "Human-readable error description"
+}
+```
+
+---
+
+## 4. Error Handling
+
+| HTTP Code | Meaning | What to do |
+|---|---|---|
+| `200` | OK | Use `data` normally |
+| `201` | Created | Resource was created successfully |
+| `400` | Bad Request | Check your request body for missing/invalid fields |
+| `401` | Unauthorized | Token missing or expired → refresh token |
+| `403` | Forbidden | Access denied |
+| `404` | Not Found | Resource doesn't exist |
+| `409` | Conflict | Duplicate entry (e.g. email already registered) |
+| `500` | Server Error | Report to backend team with request details |
+
+---
+
+## 5. Temples
+
+All temple endpoints are **public** — no auth required.
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/temples` | GET | ❌ | List all temples |
+| `/temples/live-now` | GET | ❌ | Temples currently live streaming |
+| `/temples/:id` | GET | ❌ | Full temple detail |
+| `/temples/:id/live` | GET | ❌ | Live stream URL and camera info |
+| `/temples/:id/contents` | GET | ❌ | Temple videos and gallery |
+| `/temples/:id/gifts` | GET | ❌ | Public donation history |
+| `/products/temples/:id/products` | GET | ❌ | Products linked to this temple |
+
+### Temple Object
+
+```json
+{
+  "_id": "6a0dd97a5c596419fbe2118b",
+  "name": "Shiv Mandir",
+  "location": "Haridwar, Uttarakhand",
+  "description": "Ancient Shiva temple on the banks of Ganga.",
+  "coverImage": "https://res.cloudinary.com/.../cover.jpg",
+  "posterImage": "https://res.cloudinary.com/.../poster.jpg",
+  "isLive": true,
+  "isVrReady": false,
+  "hlsUrl": "/streams/sk_shivmandir_a1b2/master.m3u8",
+  "streamUrls": {
+    "mainCam": "https://...",
+    "sideCam": "",
+    "altarCam": ""
+  },
+  "createdAt": "2026-05-01T10:30:00.000Z"
+}
+```
+
+---
+
+## 6. Products & Temple Shop
+
+All product endpoints are **public** — no auth required.
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/products` | GET | ❌ | All marketplace products |
+| `/products/temples/:id/products` | GET | ❌ | Temple-specific products |
+| `/categories` | GET | ❌ | All product categories |
+
+### Product Object
+
+```json
+{
+  "_id": "6a0e...",
+  "name": "Rudraksha Mala",
+  "price": 299,
+  "stock": 48,
+  "category": "Sacred Items",
+  "image": "https://res.cloudinary.com/.../product.jpg",
+  "isTempleShop": false,
+  "templeId": "6a0dd97a...",
+  "assignedTemples": ["6a0dd97a...", "6a15e89f..."],
+  "createdAt": "2026-05-10T08:00:00.000Z"
+}
+```
+
+### Temple Shop vs Marketplace
+
+| `isTempleShop` | Type | Description |
+|---|---|---|
+| `false` | **Marketplace** | Regular products from vendors (Essentials section) |
+| `true` | **Temple Shop** | Items sold during live streams, managed by admin |
+
+Filter client-side using the `isTempleShop` field.
+
+---
+
+## 7. Donations
+
+Donations use **Razorpay** and require two API calls.
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/donations/create-order` | POST | ❌ | Step 1: Create Razorpay order |
+| `/donations/verify-payment` | POST | ❌ | Step 2: Confirm after payment |
+| `/donations/mock-save` | POST | ❌ | **DEV only** — skip Razorpay |
+
+### Step 1 — Create Razorpay Order
+
+```http
+POST /api/donations/create-order
+Content-Type: application/json
+
+{
+  "templeId": "6a0dd97a5c596419fbe2118b",
+  "amount": 501,
+  "donorName": "Arjun Sharma",
+  "donorEmail": "arjun@example.com",
+  "donorPhone": "9876543210",
+  "offeringName": "Maha Aarti Contribution",
+  "donationType": "cash_gift"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "razorpayOrderId": "order_OBKnmLvxxxxxxx",
+    "amount": 50100,
+    "currency": "INR",
+    "keyId": "rzp_test_xxxxxx"
+  }
+}
+```
+
+> ⚠️ `amount` in the response is in **paise** (501 rupees = 50100 paise). Pass this directly to the Razorpay SDK.
+
+### Step 2 — Verify Payment (after Razorpay success callback)
+
+```http
+POST /api/donations/verify-payment
+Content-Type: application/json
+
+{
+  "razorpay_order_id": "order_OBKnmLvxxxxxxx",
+  "razorpay_payment_id": "pay_OBKnxxxxxx",
+  "razorpay_signature": "abc123...",
+  "templeId": "6a0dd97a5c596419fbe2118b",
+  "amount": 501,
+  "donorName": "Arjun Sharma",
+  "donorEmail": "arjun@example.com",
+  "donorPhone": "9876543210",
+  "offeringName": "Maha Aarti Contribution",
+  "donationType": "cash_gift"
+}
+```
+
+### Donation Types
+
+| `donationType` | When to use |
+|---|---|
+| `cash_gift` | User enters a custom donation amount |
+| `shop_donation` | User donates a temple shop item |
+
+---
+
+## 8. Orders (Marketplace)
+
+Users can buy products from the Essentials marketplace.
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/orders` | POST | ✅ | Place a new order |
+| `/orders/my` | GET | ✅ | My order history |
+| `/orders/my/gifts` | GET | ✅ | My gifted orders |
+| `/orders/:id` | GET | ✅ | Get a specific order |
+| `/orders/:id/cancel` | PUT | ✅ | Cancel an order |
+
+### Place Order — Request Body
+
+```json
+{
+  "productId": "6a0e...",
+  "quantity": 2,
+  "shippingAddress": {
+    "name": "Arjun Sharma",
+    "phone": "9876543210",
+    "address": "123 Temple Street, Sector 5",
+    "city": "Kolkata",
+    "state": "West Bengal",
+    "pincode": "700001"
+  }
+}
+```
+
+### Order Status Values
+
+| Status | Description |
+|---|---|
+| `Ordered` | Order placed, awaiting confirmation |
+| `Confirmed` | Vendor confirmed the order |
+| `Shipped` | Package dispatched |
+| `Delivered` | Delivered to customer |
+| `Cancelled` | Order cancelled |
+
+---
+
+## 9. Pujas & Prasad
+
+All listing endpoints are **public**. Booking requires auth.
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/pujas` | GET | ❌ | List all available pujas |
+| `/prasad` | GET | ❌ | List all prasad offerings |
+| `/puja-orders` | POST | ❌ | Book a puja |
+| `/puja-orders` | GET | ❌ | List puja bookings |
+
+### Book a Puja
+
+```http
+POST /api/puja-orders
+Content-Type: application/json
+
+{
+  "pujaId": "<pujaId>",
+  "templeId": "6a0dd97a5c596419fbe2118b",
+  "date": "2026-06-15",
+  "name": "Arjun Sharma",
+  "phone": "9876543210",
+  "gothra": "Kashyap",
+  "sankalp": "For family wellbeing"
+}
+```
+
+---
+
+## 10. Spiritual Activities
+
+Records when a user books a service or participates during a live stream.
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/spiritual-activities` | POST | ✅ | Record a participation/purchase |
+| `/spiritual-activities/my` | GET | ✅ | My activity history |
+
+### Record Activity
+
+```http
+POST /api/spiritual-activities
+Content-Type: application/json
+
+{
+  "templeId": "6a0dd97a5c596419fbe2118b",
+  "serviceName": "Maha Aarti Participation",
+  "price": 101,
+  "customerName": "Arjun Sharma",
+  "customerPhone": "9876543210"
+}
+```
+
+---
+
+## 11. Wallet
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/wallet/details` | GET | ✅ | Balance + transaction history |
+| `/wallet/add-funds` | POST | ✅ | Step 1: Create Razorpay recharge order |
+| `/wallet/verify-recharge` | POST | ✅ | Step 2: Confirm recharge |
+| `/wallet/pay` | POST | ✅ | Deduct from wallet balance |
+| `/wallet/dev-recharge` | POST | ✅ | **DEV only** — instant fund top-up |
+
+### Wallet Details Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "balance": 850,
+    "currency": "INR",
+    "transactions": [
+      {
+        "type": "credit",
+        "amount": 1000,
+        "description": "Wallet Recharge",
+        "createdAt": "2026-05-27T10:00:00.000Z"
+      },
+      {
+        "type": "debit",
+        "amount": 150,
+        "description": "Donation to Shiv Mandir",
+        "createdAt": "2026-05-27T12:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Recharge Flow
+
+1. `POST /wallet/add-funds` with `{ "amount": 500 }` → get Razorpay order
+2. Open Razorpay SDK with the returned order
+3. On success → `POST /wallet/verify-recharge` with `razorpay_order_id`, `razorpay_payment_id`, `razorpay_signature`
+
+---
+
+## 12. Subscriptions
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/subscriptions` | GET | ❌ | Get all subscription plans |
+| `/subscriptions/create-order` | POST | ✅ | Step 1: Create Razorpay order |
+| `/subscriptions/verify` | POST | ✅ | Step 2: Activate plan after payment |
+| `/subscriptions/change-plan` | PATCH | ✅ | Switch to a different plan |
+
+### Subscription Plan Object
+
+```json
+{
+  "_id": "6a15...",
+  "name": "Premium Devotee",
+  "price": 299,
+  "durationDays": 30,
+  "features": [
+    "HD Live Stream",
+    "VR Darshan Access",
+    "Priority Puja Booking"
+  ]
+}
+```
+
+---
+
+## 13. VR Experiences
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/vr-experiences` | GET | ❌ | List all VR experiences |
+| `/vr-experiences/:id` | GET | ❌ | Get VR experience detail |
+
+### VR Experience Object
+
+```json
+{
+  "_id": "6a16...",
+  "title": "Virtual Darshan — Dakshineswar",
+  "description": "360° immersive darshan of the main sanctum",
+  "templeId": "6a15e89f...",
+  "videoUrl": "https://...",
+  "thumbnailUrl": "https://...",
+  "isPremium": true
+}
+```
+
+---
+
+## 14. User Profile
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/users/profile` | GET | ✅ | Get my profile |
+| `/users/profile` | PUT | ✅ | Update my profile |
+| `/users/gifts` | GET | ✅ | My donation/gift history |
+| `/users/upgrade-membership` | POST | ✅ | Upgrade membership plan |
+
+### Update Profile
+
+```http
+PUT /api/users/profile
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "Arjun Sharma",
+  "phone": "9876543210",
+  "avatar": "https://res.cloudinary.com/.../avatar.jpg"
+}
+```
+
+---
+
+## 15. Upload Image
+
+Use this to upload a user's profile photo or any other image.
+
+```http
+POST /api/upload/image
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+form-data key: image  →  <image file>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "url": "https://res.cloudinary.com/temple-project/image/upload/v1234/abc.jpg",
+    "publicId": "temple_project/abc"
+  }
+}
+```
+
+Use the returned `url` in subsequent calls (e.g., as the `avatar` field in profile update).
+
+---
+
+## 16. AI Chatbot
+
+```http
+POST /api/chat/ai
+Content-Type: application/json
+
+{
+  "message": "Tell me about the significance of Maha Aarti"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "reply": "Maha Aarti is a devotional ritual performed..."
+  }
+}
+```
+
+---
+
+## 17. Razorpay Payment Flow
+
+Used for **Donations**, **Wallet Recharge**, and **Subscriptions**.
+
+```
+App                       Backend                   Razorpay
+ │                           │                          │
+ ├── POST /create-order ────>│                          │
+ │                           ├── Create order ─────────>│
+ │                           │<── order_id, amount ─────┤
+ │<── { order_id, keyId } ───┤                          │
+ │                           │                          │
+ ├── Open Razorpay SDK ─────>│                          │
+ │   (user completes payment)│                          │
+ │<── payment_id, signature ─┤                          │
+ │                           │                          │
+ ├── POST /verify ──────────>│                          │
+ │                           ├── Verify signature ─────>│
+ │                           │<── OK ───────────────────┤
+ │<── { success: true } ─────┤                          │
+```
+
+### React Native (Razorpay SDK) Example
+
+```javascript
+import RazorpayCheckout from 'react-native-razorpay';
+
+// Step 1: call your create-order endpoint
+const res = await axios.post('/api/donations/create-order', donationPayload);
+const { razorpayOrderId, amount, keyId } = res.data.data;
+
+// Step 2: open Razorpay checkout
+const options = {
+  description: 'Donation to Temple',
+  currency: 'INR',
+  key: keyId,           // from backend
+  amount: amount,       // in paise — already correct from backend
+  order_id: razorpayOrderId,
+  name: 'Temple Project',
+  prefill: {
+    email: user.email,
+    contact: user.phone,
+    name: user.name,
+  },
+  theme: { color: '#D4AF37' }
+};
+
+try {
+  const paymentData = await RazorpayCheckout.open(options);
+
+  // Step 3: verify payment
+  await axios.post('/api/donations/verify-payment', {
+    razorpay_order_id:   paymentData.razorpay_order_id,
+    razorpay_payment_id: paymentData.razorpay_payment_id,
+    razorpay_signature:  paymentData.razorpay_signature,
+    ...donationPayload  // include original donation fields again
+  });
+
+  alert('Donation successful! 🙏');
+} catch (error) {
+  if (error.code === 2) {
+    console.log('Payment cancelled by user');
+  } else {
+    console.error('Payment failed', error);
+  }
+}
+```
+
+---
+
+## 18. Live Streaming (HLS)
+
+### Check if Temple is Live
+
+```http
+GET /api/temples/:id
+```
+
+Check `isLive: true` in the response before showing the stream.
+
+### Get Stream URL
+
+```http
+GET /api/temples/:id/live
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "isLive": true,
+    "hlsUrl": "/streams/sk_shivmandir_a1b2/master.m3u8",
+    "streamUrls": {
+      "mainCam": "https://...",
+      "sideCam": "",
+      "altarCam": ""
+    }
+  }
+}
+```
+
+### Playing HLS with `react-native-video`
+
+```javascript
+import Video from 'react-native-video';
+
+const SERVER_URL = 'https://api.metagod.in'; // NO /api here
+
+<Video
+  source={{ uri: `${SERVER_URL}${temple.hlsUrl}` }}
+  resizeMode="contain"
+  paused={false}
+  controls={true}
+  style={{ width: '100%', height: 240 }}
+/>
+```
+
+> ⚠️ `hlsUrl` is a **relative path** — prepend the server base URL **without `/api`**.  
+> Example: `http://localhost:4000` + `/streams/sk_.../master.m3u8`
+
+### Polling for Live Status
+
+Poll every 30 seconds to check if a temple goes live:
+
+```javascript
+useEffect(() => {
+  const interval = setInterval(async () => {
+    const res = await axios.get(`/api/temples/${templeId}`);
+    setIsLive(res.data.data.isLive);
+  }, 30000);
+  return () => clearInterval(interval);
+}, [templeId]);
+```
+
+---
+
+## 19. Data Models Reference
+
+### User
+
+```typescript
+{
+  _id:        string
+  name:       string
+  email:      string
+  phone?:     string
+  role:       'USER'
+  avatar?:    string
+  isActive:   boolean
+  membership?: {
+    plan:      string
+    expiresAt: string   // ISO date
+  }
+  createdAt:  string    // ISO date
+}
+```
+
+### Temple
+
+```typescript
+{
+  _id:         string
+  name:        string
+  location:    string
+  description?: string
+  coverImage?:  string   // Cloudinary URL
+  posterImage?: string   // Cloudinary URL
+  isLive:      boolean
+  isVrReady:   boolean
+  hlsUrl:      string    // relative path, prepend server URL
+  streamUrls: {
+    mainCam:  string
+    sideCam:  string
+    altarCam: string
+  }
+  createdAt:   string
+}
+```
+
+### Product
+
+```typescript
+{
+  _id:             string
+  name:            string
+  price:           number    // in INR
+  stock:           number
+  category:        string
+  image?:          string    // Cloudinary URL
+  isTempleShop:    boolean   // true = live stream shop, false = marketplace
+  templeId?:       string
+  assignedTemples: string[]  // temples this product appears in
+  createdAt:       string
+}
+```
+
+### Donation
+
+```typescript
+{
+  _id:               string
+  templeId:          string
+  amount:            number   // in INR
+  status:            'pending' | 'completed' | 'failed'
+  donorName:         string
+  donorEmail:        string
+  donorPhone:        string
+  offeringName?:     string
+  donationType:      'cash_gift' | 'shop_donation'
+  razorpayPaymentId?: string
+  createdAt:         string
+}
+```
+
+### Order
+
+```typescript
+{
+  _id:          string
+  productId:    string
+  productName:  string
+  quantity:     number
+  unitPrice:    number
+  totalAmount:  number
+  status:       'Ordered' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled'
+  shippingAddress: {
+    name:    string
+    phone:   string
+    address: string
+    city:    string
+    state:   string
+    pincode: string
+  }
+  createdAt:    string
+}
+```
+
+---
+
+## 20. Dev Tips & Gotchas
+
+### 🔑 Token Management
+- `accessToken` expires in **15 minutes**
+- Implement silent refresh: on `401` → call `/auth/refresh` → retry original request
+- Store tokens securely: **Keychain** (iOS) / **Keystore** (Android)
+- Never store tokens in `AsyncStorage` (unencrypted)
+
+### 💰 Amount / Currency
+- All amounts are in **Rupees** (INR) in API bodies and responses
+- Razorpay SDK expects **paise** — the backend already converts in the response, just pass `amount` as-is from the create-order response
+- Display format: `₹1,501` (comma-formatted, ₹ prefix)
+
+### 🖼️ Images
+- All images are hosted on **Cloudinary** — use the full `https://` URL directly in `<Image>` components
+- If `image` field is `null` or empty string `""`, show a placeholder
+- Upload images via `POST /upload/image` with `multipart/form-data`
+
+### 🛕 Temple ID
+- Get `_id` from `/temples` list and store it — you'll pass `templeId` to donations, pujas, activities, and product filters
+
+### 📡 Live Stream
+- `hlsUrl` is a **relative path** — prepend the server base URL (not `/api`)
+- Poll `/temples/:id` every 30 seconds to detect live status changes
+- Show multiple camera tabs using `streamUrls.mainCam`, `sideCam`, `altarCam`
+
+### 🏪 Temple Shop During Live
+- When a temple is live, show temple shop items for that temple
+- Filter: `GET /products/temples/:id/products` and show items where `isTempleShop === true`
+
+### 📱 Recommended Libraries
+
+| Feature | Library |
+|---|---|
+| HTTP requests | `axios` |
+| Video / HLS playback | `react-native-video` |
+| Razorpay payments | `react-native-razorpay` |
+| Secure token storage | `react-native-keychain` |
+| Navigation | `react-navigation` v6 |
+| State management | `zustand` or `redux-toolkit` |
+| Images | `react-native-fast-image` |
+| Notifications | `react-native-firebase` (FCM) |
+
+---
+
+## Support
+
+When reporting an API issue, always include:
+1. Full **request URL** and **request body**
+2. The **response body** (including error message)
+3. Whether you're in **dev** or **production**
+
+---
+
+*Temple Project — Mobile App Developer Reference*  
+*User-Facing API Only — v1 — May 2026*

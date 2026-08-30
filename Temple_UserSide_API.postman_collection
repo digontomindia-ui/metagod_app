@@ -1,0 +1,498 @@
+{
+  "info": {
+    "name": "Temple Project — Mobile App API (User Side)",
+    "_postman_id": "temple-project-user-api-v1",
+    "description": "User-facing API collection for the Temple Project mobile app.\n\n**Base URL:** `https://api.metagod.in/api`\n\n**Auth:** Add `Authorization: Bearer {{token}}` to protected requests.\nRun `POST /auth/login` — the token is auto-saved to the `token` variable.\n\n**Role:** All mobile app users are `USER` role.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",   "value": "https://api.metagod.in/api", "type": "string" },
+    { "key": "token",     "value": "",                           "type": "string" },
+    { "key": "templeId",  "value": "",                           "type": "string" },
+    { "key": "productId", "value": "",                           "type": "string" },
+    { "key": "orderId",   "value": "",                           "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Arjun Sharma\",\n  \"email\": \"arjun@example.com\",\n  \"password\": \"Password@123\",\n  \"phone\": \"9876543210\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const r = pm.response.json();",
+                "if (r.data?.accessToken) {",
+                "  pm.environment.set('token', r.data.accessToken);",
+                "  pm.environment.set('refreshToken', r.data.refreshToken);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"arjun@example.com\",\n  \"password\": \"Password@123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Current User (me)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/auth/me" }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const r = pm.response.json();",
+                "if (r.data?.accessToken) pm.environment.set('token', r.data.accessToken);"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/refresh",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/send-otp",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"arjun@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/verify-otp",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"arjun@example.com\",\n  \"otp\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/change-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Password@123\",\n  \"newPassword\": \"NewPassword@456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "url": "{{baseUrl}}/auth/logout" }
+        }
+      ]
+    },
+
+    {
+      "name": "👤 My Profile",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": { "method": "GET", "url": "{{baseUrl}}/users/profile" }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/users/profile",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Arjun Sharma\",\n  \"phone\": \"9876543210\",\n  \"avatar\": \"https://res.cloudinary.com/.../avatar.jpg\"\n}"
+            }
+          }
+        },
+        {
+          "name": "My Gift / Donation History",
+          "request": { "method": "GET", "url": "{{baseUrl}}/users/gifts" }
+        },
+        {
+          "name": "Upgrade Membership",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/upgrade-membership",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan\": \"premium\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🛕 Temples",
+      "item": [
+        {
+          "name": "List All Temples",
+          "request": { "method": "GET", "url": "{{baseUrl}}/temples" }
+        },
+        {
+          "name": "Live Temples (streaming now)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/temples/live-now" }
+        },
+        {
+          "name": "Get Temple by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/temples/{{templeId}}" }
+        },
+        {
+          "name": "Get Temple Live Stream Info",
+          "request": { "method": "GET", "url": "{{baseUrl}}/temples/{{templeId}}/live" }
+        },
+        {
+          "name": "Get Temple Contents (videos, gallery)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/temples/{{templeId}}/contents" }
+        },
+        {
+          "name": "Get Temple Donation History (public)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/temples/{{templeId}}/gifts" }
+        }
+      ]
+    },
+
+    {
+      "name": "🛍️ Products & Temple Shop",
+      "item": [
+        {
+          "name": "Get All Marketplace Products",
+          "request": { "method": "GET", "url": "{{baseUrl}}/products" }
+        },
+        {
+          "name": "Get Products for a Specific Temple",
+          "request": { "method": "GET", "url": "{{baseUrl}}/products/temples/{{templeId}}/products" }
+        },
+        {
+          "name": "Get All Categories",
+          "request": { "method": "GET", "url": "{{baseUrl}}/categories" }
+        }
+      ]
+    },
+
+    {
+      "name": "💸 Donations",
+      "item": [
+        {
+          "name": "1. Create Razorpay Donation Order",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/donations/create-order",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templeId\": \"{{templeId}}\",\n  \"amount\": 501,\n  \"donorName\": \"Arjun Sharma\",\n  \"donorEmail\": \"arjun@example.com\",\n  \"donorPhone\": \"9876543210\",\n  \"offeringName\": \"Maha Aarti Contribution\",\n  \"donationType\": \"cash_gift\"\n}"
+            }
+          }
+        },
+        {
+          "name": "2. Verify Donation Payment",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/donations/verify-payment",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_xxx\",\n  \"razorpay_payment_id\": \"pay_xxx\",\n  \"razorpay_signature\": \"sig_xxx\",\n  \"templeId\": \"{{templeId}}\",\n  \"amount\": 501,\n  \"donorName\": \"Arjun Sharma\",\n  \"donorEmail\": \"arjun@example.com\",\n  \"donorPhone\": \"9876543210\",\n  \"offeringName\": \"Maha Aarti Contribution\",\n  \"donationType\": \"cash_gift\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Mock Donation (DEV testing only)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/donations/mock-save",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templeId\": \"{{templeId}}\",\n  \"amount\": 100,\n  \"donorName\": \"Test User\",\n  \"donorEmail\": \"test@test.com\",\n  \"donorPhone\": \"9000000000\",\n  \"offeringName\": \"Test Offering\",\n  \"donationType\": \"cash_gift\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "📦 Orders",
+      "item": [
+        {
+          "name": "Place an Order",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/orders",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 1,\n  \"shippingAddress\": {\n    \"name\": \"Arjun Sharma\",\n    \"phone\": \"9876543210\",\n    \"address\": \"123 Temple Street\",\n    \"city\": \"Kolkata\",\n    \"state\": \"West Bengal\",\n    \"pincode\": \"700001\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "My Orders",
+          "request": { "method": "GET", "url": "{{baseUrl}}/orders/my" }
+        },
+        {
+          "name": "My Gift Orders",
+          "request": { "method": "GET", "url": "{{baseUrl}}/orders/my/gifts" }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/orders/{{orderId}}" }
+        },
+        {
+          "name": "Cancel Order",
+          "request": { "method": "PUT", "url": "{{baseUrl}}/orders/{{orderId}}/cancel" }
+        }
+      ]
+    },
+
+    {
+      "name": "🙏 Pujas & Prasad",
+      "item": [
+        {
+          "name": "List All Pujas",
+          "request": { "method": "GET", "url": "{{baseUrl}}/pujas" }
+        },
+        {
+          "name": "List All Prasad",
+          "request": { "method": "GET", "url": "{{baseUrl}}/prasad" }
+        },
+        {
+          "name": "Book a Puja",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/puja-orders",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pujaId\": \"<pujaId>\",\n  \"templeId\": \"{{templeId}}\",\n  \"date\": \"2026-06-15\",\n  \"name\": \"Arjun Sharma\",\n  \"phone\": \"9876543210\",\n  \"gothra\": \"Kashyap\",\n  \"sankalp\": \"For family wellbeing\"\n}"
+            }
+          }
+        },
+        {
+          "name": "My Puja Bookings",
+          "request": { "method": "GET", "url": "{{baseUrl}}/puja-orders" }
+        }
+      ]
+    },
+
+    {
+      "name": "🌟 Spiritual Activities",
+      "item": [
+        {
+          "name": "Record Activity (live stream purchase)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/spiritual-activities",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templeId\": \"{{templeId}}\",\n  \"serviceName\": \"Maha Aarti Participation\",\n  \"price\": 101,\n  \"customerName\": \"Arjun Sharma\",\n  \"customerPhone\": \"9876543210\"\n}"
+            }
+          }
+        },
+        {
+          "name": "My Activity History",
+          "request": { "method": "GET", "url": "{{baseUrl}}/spiritual-activities/my" }
+        }
+      ]
+    },
+
+    {
+      "name": "💳 Wallet",
+      "item": [
+        {
+          "name": "Get Wallet Balance & History",
+          "request": { "method": "GET", "url": "{{baseUrl}}/wallet/details" }
+        },
+        {
+          "name": "1. Create Recharge Order (Razorpay)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/wallet/add-funds",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500\n}"
+            }
+          }
+        },
+        {
+          "name": "2. Verify Recharge Payment",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/wallet/verify-recharge",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_xxx\",\n  \"razorpay_payment_id\": \"pay_xxx\",\n  \"razorpay_signature\": \"sig_xxx\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Pay with Wallet",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/wallet/pay",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 200,\n  \"description\": \"Donation to Shiv Mandir\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Dev Instant Recharge (testing only)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/wallet/dev-recharge",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "📡 Subscriptions",
+      "item": [
+        {
+          "name": "Get All Plans",
+          "request": { "method": "GET", "url": "{{baseUrl}}/subscriptions" }
+        },
+        {
+          "name": "1. Create Subscription Order",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/subscriptions/create-order",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"<planId>\"\n}"
+            }
+          }
+        },
+        {
+          "name": "2. Verify Subscription Payment",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/subscriptions/verify",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_xxx\",\n  \"razorpay_payment_id\": \"pay_xxx\",\n  \"razorpay_signature\": \"sig_xxx\",\n  \"planId\": \"<planId>\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Change Plan",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/subscriptions/change-plan",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPlanId\": \"<planId>\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🥽 VR Experiences",
+      "item": [
+        {
+          "name": "List All VR Experiences",
+          "request": { "method": "GET", "url": "{{baseUrl}}/vr-experiences" }
+        },
+        {
+          "name": "Get VR Experience by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/vr-experiences/<id>" }
+        }
+      ]
+    },
+
+    {
+      "name": "☁️ Upload Image",
+      "item": [
+        {
+          "name": "Upload Image (Cloudinary)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/upload/image",
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "image", "type": "file", "src": "" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "💬 AI Chatbot",
+      "item": [
+        {
+          "name": "Send Message to AI",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/chat/ai",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Tell me about the significance of Maha Aarti\"\n}"
+            }
+          }
+        }
+      ]
+    }
+
+  ]
+}

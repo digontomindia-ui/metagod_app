@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Blocks all cleartext (HTTP) traffic. The app talks to HTTPS endpoints only
+  (api.metagod.in, live.metagodcreator.com). If you ever need to allow plain
+  HTTP for a specific host (e.g. a local dev media server), add a
+  <domain-config cleartextTrafficPermitted="true"> block for that host only —
+  never re-enable cleartext globally.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
